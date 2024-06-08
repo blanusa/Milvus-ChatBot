@@ -8,8 +8,8 @@ WORKDIR /app
 COPY . /app
 COPY milvus_standalone.py .
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir fastapi uvicorn pymilvus
+# Install any needed packages specified in requirements.txt 
+RUN pip install --no-cache-dir fastapi uvicorn pymilvus httpx
 
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
