@@ -1,20 +1,31 @@
-from pymilvus import connections, utility, MilvusException, MilvusClient, Collection
+from pymilvus import connections, utility, MilvusException, MilvusClient, Collection, FieldSchema, CollectionSchema, DataType
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 import httpx
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
+import csv
+from sentence_transformers import SentenceTransformer
+import time
+import pandas as pd
+import spacy
 
+
+BATCH_SIZE = 300
+DIMENSION = 300  # Embeddings size
+TOP_K = 3
+COUNT = 500
 
 app = FastAPI()
 
 MILVUS_HOST = 'standalone'
 MILVUS_PORT = 19530
 
+nlp = spacy.load('en_core_web_lg')
 connections.connect(host="standalone", port="19530")
 
-collection_test = Collection(name="test_name")
+#collection_test = Collection(name="test_name")
 
 #collection_bus_routes = Collection(name="BusRoutes")
 
@@ -40,28 +51,69 @@ index_params = {
 #)
 
 #collection_bus_routes.load()
-collection_test.load()
+#collection_test.load()
 
-@app.get("/collections/getvector1/{vector_id}")
-async def get_vector(
-    vector_id: int
-):
-    try:
-        client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Milvus")
+# IMPORTOVANJE CSV-A
+fields = [
+    FieldSchema(name='id', dtype=DataType.INT64, is_primary=True, auto_id=True),
+    FieldSchema(name='RouteDescription', dtype=DataType.VARCHAR, max_length=1000),
+    FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, dim=DIMENSION)
+]
+schema = CollectionSchema(fields=fields,enable_dynamic_fields=True, primary_field='id')
+BusDepartCollection = Collection(name="BusDepartCollection", schema=schema)
 
-        vector_data = client.get(collection_name="collection_test", ids=[vector_id])
+index_params_bus = {
+    'metric_type':'L2',
+    'index_type':"IVF_FLAT",
+    'params':{'nlist': 1536}
+}
 
-        if vector_data:
-            vector_dict = {
-                "id": vector_id,
-                "test_field": vector_data[0]["description"],
-            }
-            return JSONResponse(content={"vector_data": vector_dict})
-        else:
-            return JSONResponse(content={"message": "Vector not found"}, status_code=404)
+BusDepartCollection.create_index(field_name="embedding", index_params=index_params_bus)
+BusDepartCollection.load()
 
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+transformer = SentenceTransformer('all-MiniLM-L6-v2')
+
+def csv_load(file_path, encoding='utf-8'):
+    with open(file_path, 'r', encoding=encoding, newline='') as file:
+        reader = csv.reader(file, delimiter=',')
+        for row in reader:
+            if '' in (row[3], row[3]):
+                continue
+            yield (row[3], row[3])
+
+
+def embed_insert(data):
+    #embeds = transformer.encode(data[1]) 
+    print(data[1][0],"\n",data[0][0])
+    print("---------------------------------------")
+    doc = nlp(data[1][0])
+    ins = [
+            [data[0][0]],
+            [doc.vector]
+    ]
+    BusDepartCollection.insert(ins)
+
+
+data_batch = [[],[]]
+
+count = 0
+
+for RouteDescription,RouteDescription1 in csv_load("novi_sad_bus_departure_times.csv"):
+    print(RouteDescription,RouteDescription1)
+    data_batch[0].append(RouteDescription)
+    data_batch[1].append(RouteDescription1)
+    #if len(data_batch[0]) % BATCH_SIZE == 0:
+    embed_insert(data_batch)
+    data_batch = [[],[]]
+    count += 1
+
+
+if len(data_batch[0]) != 0:
+    embed_insert(data_batch)
+
+BusDepartCollection.flush()
+
+
 
 
 @app.get("/")
