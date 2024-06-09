@@ -1,4 +1,4 @@
-Street,Bus Line,Departure Time,RouteDescription,Route Duration (minutes)
+Street,BusLine,DepartureTime,RouteDescription,RouteDuration
 Vuka Karadžića,Bus Line 21,3:57,"The bus passes through the streets: Novosadska 1, Braće Krsmanović, Milana Tepić, Futog, Braće Penić, Jevrejska, Braće Radić. On the way, you can see: Matica Srpska Gallery, Fish Market, Serbian National Theatre.",50
 Kneza Višeslava,Bus Line 71,12:49,"The bus passes through the streets: Kneza Lazara, Zlatiborska, Salajka, Jevrejska, Braće Krkljuš, Bulevar Patrijarha Pavla, Braće Novaković, Nikole Tesle, Karađorđeva, Braće Stefanović. On the way, you can see: Limanski Park, Spens Sports Center.",48
 Živojina Mišića,Bus Line 38,2:17,"The bus passes through the streets: Aleksandra Vulina, Braće Ribnikar, Kneza Višeslava, Nova 1, Kralja Petra I, Podbara, Trg Slobode, Miše Dimitrijevića, Omladinska. On the way, you can see: Liberty Square, Strand Beach, University of Novi Sad.",27
