@@ -1,20 +1,22 @@
 from pymilvus import connections, utility, MilvusException, MilvusClient, Collection
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 import httpx
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
-
+import spacy
+import json
 
 app = FastAPI()
 
 MILVUS_HOST = 'standalone'
 MILVUS_PORT = 19530
-
+nlp = spacy.load("en_core_web_lg")
 connections.connect(host="standalone", port="19530")
-
 collection_test = Collection(name="test_name")
+client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Milvus")
+
 
 #collection_bus_routes = Collection(name="BusRoutes")
 
@@ -100,7 +102,6 @@ async def test_milvus_connection():
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
 
 class Item(BaseModel):
-    embedding : List[float]
     name: List[str]
 
 @app.post("/insertText")
@@ -108,14 +109,48 @@ async def insertText(text : Item):
     try:
         test_collection = "text_collection"
         collection = Collection(name=test_collection)
-        embedding = text.embedding
+        embedding = [nlp(name).vector for name in text.name]
         name = text.name
-        data = [[embedding],name]
+        data = [embedding,name]
         mr = collection.insert(data)
         print(f"Insert result: {mr}")
         
         # Step 6: Flush to persist data
         collection.flush()
+    except Exception as e:
+        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+    
+@app.post("/searchText")
+async def search_text(text: Item):
+    try:
+        # Generate vectors for each name in the input text
+        vectors = [nlp(name).vector for name in text.name]
+
+        # Perform search on the collection
+        res = client.search(
+            collection_name="text_collection",
+            data=vectors,
+            limit=5,
+            search_params={"metric_type": "L2", "params": {}}
+        )
+
+        # Extract search result IDs
+        search_result_ids = [j["id"] for i in res for j in i]
+        
+        if not search_result_ids:
+            raise HTTPException(status_code=404, detail="No search results found")
+
+        # Retrieve entities based on the search result IDs
+        entities = client.get(
+            collection_name="text_collection",
+            ids=search_result_ids
+        )
+        returnValues = []
+        for entity in entities : 
+            print(entity["ID"])
+            print(entity["name"]) 
+            returnValues.append([entity["ID"],entity["name"]])
+        return returnValues
     except Exception as e:
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
 
