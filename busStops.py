@@ -24,8 +24,8 @@ connections.connect(host="standalone", port="19530")
 fields = [
     FieldSchema(name='id', dtype=DataType.INT64, is_primary=True, auto_id=True),
     FieldSchema(name='name', dtype=DataType.VARCHAR, max_length=1000),
-    FieldSchema(name='latitude', dtype=DataType.VARCHAR, max_length=500),
-    FieldSchema(name='longitude', dtype=DataType.VARCHAR, max_length=500),
+    FieldSchema(name='latitude', dtype=DataType.FLOAT),
+    FieldSchema(name='longitude', dtype=DataType.FLOAT),
     FieldSchema(name='bus_lines', dtype=DataType.VARCHAR, max_length=100),
     FieldSchema(name='facilities', dtype=DataType.VARCHAR, max_length=100),
     FieldSchema(name='nearby_landmarks', dtype=DataType.VARCHAR, max_length=100),
@@ -48,6 +48,7 @@ BusStopsCollection.load()
 def csv_load(file_path, encoding='utf-8'):
     with open(file_path, 'r', encoding=encoding, newline='') as file:
         reader = csv.reader(file, delimiter=',')
+        next(reader)
         for row in reader:
             #print(row)
             if '' in (row[7], row[7]):
@@ -77,8 +78,8 @@ count = 0
 i = 0
 for name,latitude,longitude,bus_lines,facilities,nearby_landmarks,special_features in csv_load("novi_sad_bus_stops.csv"):
     data_batch[0].append(name)
-    data_batch[1].append(latitude)
-    data_batch[2].append(longitude)
+    data_batch[1].append(float(latitude))
+    data_batch[2].append(float(longitude))
     data_batch[3].append(bus_lines)
     data_batch[4].append(facilities)
     data_batch[5].append(nearby_landmarks)

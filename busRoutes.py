@@ -26,7 +26,7 @@ fields = [
     FieldSchema(name='BusLine', dtype=DataType.VARCHAR, max_length=500),
     FieldSchema(name='DepartureTime', dtype=DataType.VARCHAR, max_length=1000),
     FieldSchema(name='RouteDescription', dtype=DataType.VARCHAR, max_length=1000),
-    FieldSchema(name='RouteDuration', dtype=DataType.VARCHAR,max_length=100),
+    FieldSchema(name='RouteDuration', dtype=DataType.INT),
     FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, dim=DIMENSION)
 ]
 schema = CollectionSchema(fields=fields,enable_dynamic_fields=True, primary_field='id')
@@ -45,6 +45,7 @@ BusDepartCollection.load()
 def csv_load(file_path, encoding='utf-8'):
     with open(file_path, 'r', encoding=encoding, newline='') as file:
         reader = csv.reader(file, delimiter=',')
+        next(reader)
         for row in reader:
             if '' in (row[3], row[3]):
                 continue
@@ -73,7 +74,7 @@ for Street,BusLine,DepartureTime,RouteDuration,RouteDescription in csv_load("nov
     data_batch[0].append(Street)
     data_batch[1].append(BusLine)
     data_batch[2].append(DepartureTime)
-    data_batch[3].append(RouteDuration)
+    data_batch[3].append(int(RouteDuration))
     data_batch[4].append(RouteDescription)
     data_batch[5].append(RouteDescription)
     #if len(data_batch[0]) % BATCH_SIZE == 0:

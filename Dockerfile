@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir fastapi uvicorn pymilvus httpx
 RUN pip install -U pip setuptools wheel
 RUN pip install -U spacy
 RUN python -m spacy download en_core_web_lg
-
+RUN pip install numpy
 # Copy the current directory contents into the container at /app
 COPY . /app
 COPY milvus_standalone.py .
@@ -18,6 +18,9 @@ COPY busRoutes.py .
 COPY busStops.py .
 COPY start.sh .
 
+#Windows deo za start.sh
+RUN apt-get update && apt-get install -y dos2unix
+RUN dos2unix /app/start.sh
 
 
 # Make port 8000 available to the world outside this container

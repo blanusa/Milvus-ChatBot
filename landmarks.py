@@ -25,7 +25,7 @@ fields = [
     FieldSchema(name='Landmark', dtype=DataType.VARCHAR, max_length=1000),
     FieldSchema(name='City', dtype=DataType.VARCHAR, max_length=500),
     FieldSchema(name='Region', dtype=DataType.VARCHAR, max_length=500),
-    FieldSchema(name='NumberOfCitizens', dtype=DataType.VARCHAR, max_length=100),
+    FieldSchema(name='NumberOfCitizens', dtype=DataType.INT64),
     FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, dim=DIMENSION)
 ]
 schema = CollectionSchema(fields=fields,enable_dynamic_fields=True, primary_field='id')
@@ -44,6 +44,7 @@ LandmarkCollection.load()
 def csv_load(file_path, encoding='utf-8'):
     with open(file_path, 'r', encoding=encoding, newline='') as file:
         reader = csv.reader(file, delimiter=',')
+        next(reader)
         for row in reader:
             if '' in (row[0], row[0]):
                 continue
@@ -71,7 +72,7 @@ for Landmark,City,Region,NumberOfCitizens in csv_load("landmarks.csv"):
     data_batch[0].append(Landmark)
     data_batch[1].append(City)
     data_batch[2].append(Region)
-    data_batch[3].append(NumberOfCitizens)
+    data_batch[3].append(int(NumberOfCitizens))
     data_batch[4].append(Landmark)
     #if len(data_batch[0]) % BATCH_SIZE == 0:
     embed_insert(data_batch)

@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 import spacy
+import numpy as np
 
 app = FastAPI()
 
@@ -18,6 +19,17 @@ client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Mil
 BusStopsCollection = Collection(name="BusStopsCollection")
 BusDepartCollection = Collection(name="BusDepartCollection")
 LandmarkCollection = Collection(name="LandmarkCollection")
+
+@app.get("/niga")
+async def niga():
+    query_vector = np.random.random(300)  # Your input vector for description
+    input_region = "Vojvodina"
+    min_citizens = 100000
+    query_expr = f'embedding:[{query_vector.tolist()} TO {query_vector.tolist()}]'  # Assuming you're using the vector field for description
+    filter_expr = f'NumberOfCitizens:>{min_citizens} AND Region:{input_region}'
+    query_result = LandmarkCollection.query(expr=query_expr, filter=filter_expr)
+    return query_result
+
 
 @app.get("/")
 async def func():
