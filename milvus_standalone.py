@@ -7,6 +7,9 @@ from pydantic import BaseModel
 from typing import List
 import spacy
 import numpy as np
+from busStops import run_bus_stops_insertion
+from busRoutes import run_bus_routes_insertion
+from landmarks import run_landmarks_insertion
 
 app = FastAPI()
 
@@ -16,19 +19,13 @@ nlp = spacy.load("en_core_web_lg")
 connections.connect(host="standalone", port="19530")
 client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Milvus")
 
+run_bus_stops_insertion()
+run_bus_routes_insertion()
+run_landmarks_insertion()
+
 BusStopsCollection = Collection(name="BusStopsCollection")
 BusDepartCollection = Collection(name="BusDepartCollection")
 LandmarkCollection = Collection(name="LandmarkCollection")
-
-@app.get("/niga")
-async def niga():
-    query_vector = np.random.random(300)  # Your input vector for description
-    input_region = "Vojvodina"
-    min_citizens = 100000
-    query_expr = f'embedding:[{query_vector.tolist()} TO {query_vector.tolist()}]'  # Assuming you're using the vector field for description
-    filter_expr = f'NumberOfCitizens:>{min_citizens} AND Region:{input_region}'
-    query_result = LandmarkCollection.query(expr=query_expr, filter=filter_expr)
-    return query_result
 
 
 @app.get("/")
@@ -68,8 +65,13 @@ async def test_milvus_connection():
 class Insert(BaseModel):
     name :List[str]
 
+
 class Search(BaseModel):
-    name: List[str]
+    landmark: List[str]
+    region: str
+    min_citizens: int
+    max_citizens: int
+
 
 class Update(BaseModel):
     identifikator : List[int]
@@ -166,6 +168,65 @@ async def deleteText(body : Delete):
         collection.delete(f"ID in {body.identifikator}")
         return {"message" : "Deleted entities."}
     
+    except Exception as e:
+        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+    
+
+
+# kompleksni
+@app.get("/niga")
+async def searchText(body: Search):
+    try:
+        vectors = [nlp(name).vector for name in body.landmark]
+
+        res = client.search(
+            collection_name="LandmarkCollection",
+            data=vectors,
+            limit=5,
+            search_params={"metric_type": "L2", "params": {"nprobe": 32, "top_k": 5}}
+        )
+
+
+        search_result_ids = [j["id"] for i in res for j in i]
+
+        print("---------- search_result_ids ---------------")
+        print(search_result_ids)
+        print("----------- Kraj search_result_ids --------------")
+
+
+        if not search_result_ids:
+            raise HTTPException(status_code=404, detail="No search results found")
+
+        # Perform additional filtering by region and number of citizens
+        entities = client.get(
+            collection_name="LandmarkCollection",
+            ids=search_result_ids
+        )
+        print("---------- Entities ---------------")
+        print(entities)
+        print("----------- Kraj Entities --------------")
+
+        filtered_entities = []
+        for entity in entities:
+            if (entity["Region"] == body.region and
+                entity["NumberOfCitizens"] >= body.min_citizens and
+                entity["NumberOfCitizens"] <= body.max_citizens):
+                filtered_entities.append(entity)
+
+        if len(filtered_entities) == 0:
+            raise HTTPException(status_code=404, detail="No filtered search results found")
+
+        returnValues = []
+        for entity in filtered_entities:
+            returnValues.append({
+                "ID": entity["id"],
+                "Landmark": entity["Landmark"],
+                "City": entity["City"],
+                "Region": entity["Region"],
+                "NumberOfCitizens": entity["NumberOfCitizens"]
+            })
+        return returnValues
+
     except Exception as e:
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
         
