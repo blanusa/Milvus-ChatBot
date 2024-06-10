@@ -35,7 +35,7 @@ BusDepartCollection = Collection(name="BusDepartCollection", schema=schema)
 index_params_bus = {
     'metric_type':'L2',
     'index_type':"IVF_FLAT",
-    'params':{'nlist': 1536}
+    'params':{'nlist': 5}
 }
 
 BusDepartCollection.create_index(field_name="embedding", index_params=index_params_bus)
