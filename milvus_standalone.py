@@ -6,7 +6,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 import spacy
-import json
 
 app = FastAPI()
 
@@ -16,46 +15,9 @@ nlp = spacy.load("en_core_web_lg")
 connections.connect(host="standalone", port="19530")
 client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Milvus")
 
-
-#collection_bus_routes = Collection(name="BusRoutes")
-
-
-index_params = {
-    "index_type": "IVF_FLAT",
-    "metric_type": "L2",
-    "params": {
-        "nlist": 100
-    }
-}
-
-#collection_bus_routes.create_index(
-# field_name="Vector",
-#  index_params=index_params,
-#  index_name="busroutes_index"
-#)
-
-#collection_bus_routes.load()
-
-@app.get("/collections/getvector1/{vector_id}")
-async def get_vector(
-    vector_id: int
-):
-    try:
-        client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Milvus")
-
-        vector_data = client.get(collection_name="collection_test", ids=[vector_id])
-
-        if vector_data:
-            vector_dict = {
-                "id": vector_id,
-                "test_field": vector_data[0]["description"],
-            }
-            return JSONResponse(content={"vector_data": vector_dict})
-        else:
-            return JSONResponse(content={"message": "Vector not found"}, status_code=404)
-
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+BusStopsCollection = Collection(name="BusStopsCollection")
+BusDepartCollection = Collection(name="BusDepartCollection")
+LandmarkCollection = Collection(name="LandmarkCollection")
 
 @app.get("/")
 async def func():
@@ -74,8 +36,10 @@ async def func():
 @app.get("/get-entity-count/")
 async def get_entity_count():
     try:
-       # count = collection.num_entities
-        return {"message": "Count of entities in collection", "count": 123123}
+        count1 = BusStopsCollection.num_entities
+        count2 = BusDepartCollection.num_entities
+        count3 = LandmarkCollection.num_entities
+        return {"message": "Count of entities in collections : " + count1 +" "+ count2 +" "+ count3, "count":count1+count2+count3}
     except Exception as e:
         return {"message": "Error occurred while getting entity count:", "error": str(e)}
 
@@ -199,4 +163,4 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
     
-#docker run --name attu -p 8000:3000 -e HOST_URL=http://192.168.1.84:8000 -e MILVUS_URL=http://192.168.1.84:19530 zilliz/attu:v2.3.6 ATTU GUI ZA MILVUS
+#docker run --name attu -p 8000:3000 -e HOST_URL=http://192.168.1.24:8000 -e MILVUS_URL=http://192.168.1.24:19530 zilliz/attu:v2.3.6
