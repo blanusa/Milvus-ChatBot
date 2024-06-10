@@ -174,8 +174,9 @@ async def deleteText(body : Delete):
 
 
 # kompleksni
-@app.get("/niga")
-async def searchText(body: Search):
+# ovo se ne koristi nego ono dole, neka ga za svaki slucaj
+@app.get("/searchLandmarks1")
+async def searchLandmarks1(body: Search):
     try:
         vectors = [nlp(name).vector for name in body.landmark]
 
@@ -186,12 +187,11 @@ async def searchText(body: Search):
             search_params={"metric_type": "L2", "params": {"nprobe": 32, "top_k": 5}}
         )
 
-
         search_result_ids = [j["id"] for i in res for j in i]
 
-        print("---------- search_result_ids ---------------")
-        print(search_result_ids)
-        print("----------- Kraj search_result_ids --------------")
+        #print("---------- search_result_ids ---------------")
+        #print(search_result_ids)
+        #print("----------- Kraj search_result_ids --------------")
 
 
         if not search_result_ids:
@@ -202,9 +202,9 @@ async def searchText(body: Search):
             collection_name="LandmarkCollection",
             ids=search_result_ids
         )
-        print("---------- Entities ---------------")
-        print(entities)
-        print("----------- Kraj Entities --------------")
+        #print("---------- Entities ---------------")
+        #print(entities)
+        #print("----------- Kraj Entities --------------")
 
         filtered_entities = []
         for entity in entities:
@@ -231,6 +231,80 @@ async def searchText(body: Search):
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
         
       
+@app.get("/searchLandmarks1")
+async def searchLandmarks(body: Search):
+    search_param = {
+    "data": [body.landmark],
+    "anns_field": "book_intro",
+    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
+    "limit": 10,
+    "expr": "numberOfCitizens <= " + body.max_citizens,
+    }
+    res = LandmarkCollection.search(**search_param)
+    return res
+
+
+@app.get("/searchRoutes1")
+async def searchRoutes1(body: Search):
+    search_param = {
+    "data": [body.landmark],
+    "anns_field": "book_intro",
+    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
+    "limit": 10,
+    "expr": "numberOfCitizens <= " + body.max_citizens,
+    }
+    res = LandmarkCollection.search(**search_param)
+    return res
+
+@app.get("/searchRoutes2")
+async def searchRoutes2(body: Search):
+    search_param = {
+    "data": [body.landmark],
+    "anns_field": "book_intro",
+    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
+    "limit": 10,
+    "expr": "numberOfCitizens <= " + body.max_citizens,
+    }
+    res = LandmarkCollection.search(**search_param)
+    return res
+
+@app.get("/searchLandmarks1")
+async def searchLandmarks(body: Search):
+    search_param = {
+    "data": [body.landmark],
+    "anns_field": "book_intro",
+    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
+    "limit": 10,
+    "expr": "numberOfCitizens <= " + body.max_citizens,
+    }
+    res = LandmarkCollection.search(**search_param)
+    return res
+
+@app.get("/searchLandmarks1")
+async def searchLandmarks(body: Search):
+    search_param = {
+    "data": [body.landmark],
+    "anns_field": "book_intro",
+    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
+    "limit": 10,
+    "expr": "numberOfCitizens <= " + body.max_citizens,
+    }
+    res = LandmarkCollection.search(**search_param)
+    return res
+
+@app.get("/searchLandmarks1")
+async def searchLandmarks(body: Search):
+    search_param = {
+    "data": [body.landmark],
+    "anns_field": "book_intro",
+    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
+    "limit": 10,
+    "expr": "numberOfCitizens <= " + body.max_citizens,
+    }
+    res = LandmarkCollection.search(**search_param)
+    return res
+
+
 
 if __name__ == "__main__":
     import uvicorn
