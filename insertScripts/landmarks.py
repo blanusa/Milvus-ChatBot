@@ -18,71 +18,69 @@ DIMENSION = 300  # Embeddings size
 
 nlp = spacy.load('en_core_web_lg')
 connections.connect(host="standalone", port="19530")
-# Street,Bus Line,Departure Time,RouteDescription,Route Duration (minutes)
+# Landmark,City,Region,NumberOfCitizens
 
 fields = [
     FieldSchema(name='id', dtype=DataType.INT64, is_primary=True, auto_id=True),
-    FieldSchema(name='Street', dtype=DataType.VARCHAR, max_length=500),
-    FieldSchema(name='BusLine', dtype=DataType.VARCHAR, max_length=500),
-    FieldSchema(name='DepartureTime', dtype=DataType.VARCHAR, max_length=1000),
-    FieldSchema(name='RouteDescription', dtype=DataType.VARCHAR, max_length=1000),
-    FieldSchema(name='RouteDuration', dtype=DataType.VARCHAR,max_length=100),
+    FieldSchema(name='Landmark', dtype=DataType.VARCHAR, max_length=1000),
+    FieldSchema(name='City', dtype=DataType.VARCHAR, max_length=500),
+    FieldSchema(name='Region', dtype=DataType.VARCHAR, max_length=500),
+    FieldSchema(name='NumberOfCitizens', dtype=DataType.INT64),
     FieldSchema(name='embedding', dtype=DataType.FLOAT_VECTOR, dim=DIMENSION)
 ]
 schema = CollectionSchema(fields=fields,enable_dynamic_fields=True, primary_field='id')
-BusDepartCollection = Collection(name="BusDepartCollection", schema=schema)
+LandmarkCollection = Collection(name="LandmarkCollection", schema=schema)
 
-index_params_bus = {
+index_params_landmark = {
     'metric_type':'L2',
     'index_type':"IVF_FLAT",
     'params':{'nlist': 5}
 }
 
-BusDepartCollection.create_index(field_name="embedding", index_params=index_params_bus)
-BusDepartCollection.load()
+LandmarkCollection.create_index(field_name="embedding", index_params=index_params_landmark)
+LandmarkCollection.load()
 
 
 def csv_load(file_path, encoding='utf-8'):
     with open(file_path, 'r', encoding=encoding, newline='') as file:
         reader = csv.reader(file, delimiter=',')
+        next(reader)
         for row in reader:
-            if '' in (row[3], row[3]):
+            if '' in (row[0], row[0]):
                 continue
-            yield (row[0],row[1],row[2], row[3],row[4])
+            yield (row[0],row[1],row[2], row[3])
 
 
 def embed_insert(data):
-    doc = nlp(data[5][0])
+    doc = nlp(data[0][0])
     ins = [
             [data[0][0]],
             [data[1][0]],
             [data[2][0]],
             [data[3][0]],
-            [data[4][0]],
             [doc.vector]
     ]
-    BusDepartCollection.insert(ins)
+    LandmarkCollection.insert(ins)
 
-data_batch = [[],[],[],[],[],[],[]]
+data_batch = [[],[],[],[],[]]
 
 count = 0
-    #Street,BusLine,DepartureTime,RouteDuration,RouteDescription = 
+    #Landmark,City,Region,NumberOfCitizens
 
 i = 0
-for Street,BusLine,DepartureTime,RouteDuration,RouteDescription in csv_load("novi_sad_bus_departure_times.csv"):
-    data_batch[0].append(Street)
-    data_batch[1].append(BusLine)
-    data_batch[2].append(DepartureTime)
-    data_batch[3].append(RouteDuration)
-    data_batch[4].append(RouteDescription)
-    data_batch[5].append(RouteDescription)
+for Landmark,City,Region,NumberOfCitizens in csv_load("landmarks.csv"):
+    data_batch[0].append(Landmark)
+    data_batch[1].append(City)
+    data_batch[2].append(Region)
+    data_batch[3].append(int(NumberOfCitizens))
+    data_batch[4].append(Landmark)
     #if len(data_batch[0]) % BATCH_SIZE == 0:
     embed_insert(data_batch)
-    data_batch = [[],[],[],[],[],[],[]]
+    data_batch = [[],[],[],[],[]]
     
 
 
 if len(data_batch[0]) != 0:
     embed_insert(data_batch)
 
-BusDepartCollection.flush()
+LandmarkCollection.flush()

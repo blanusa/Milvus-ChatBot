@@ -7,6 +7,9 @@ from pydantic import BaseModel
 from typing import List
 import spacy
 
+from controllers.DTO import DeleteText, GetEntityCount, Insert, SearchText, TestMilvusCollection, Update, Search, Delete, UpsertText, getAllCollection, insertInTextCollection
+from controllers.LandmarkCollectionController import DeleteLandmarkEntity, InsertToLandmarks, LandmarkDelete, LandmarkInsert, LandmarkSearch, LandmarkUpsert, SearchLandmarkText, UpsertLandmarkEntity
+
 app = FastAPI()
 
 MILVUS_HOST = 'standalone'
@@ -21,143 +24,53 @@ LandmarkCollection = Collection(name="LandmarkCollection")
 
 @app.get("/")
 async def func():
-    try:
-        collections = utility.list_collections()
-        print(f"List all collections:\n", collections)
-    except MilvusException as e:
-        print(e)
-
-@app.get("/springBoot")
-async def func():
-    async with httpx.AsyncClient() as client:
-        response = await client.get("http://host.docker.internal:9099/hi")
-        return response.json()
+    await getAllCollection()
 
 @app.get("/get-entity-count/")
 async def get_entity_count():
-    try:
-        count1 = BusStopsCollection.num_entities
-        count2 = BusDepartCollection.num_entities
-        count3 = LandmarkCollection.num_entities
-        return {"message": "Count of entities in collections : " + count1 +" "+ count2 +" "+ count3, "count":count1+count2+count3}
-    except Exception as e:
-        return {"message": "Error occurred while getting entity count:", "error": str(e)}
+    await GetEntityCount(BusStopsCollection,BusDepartCollection,LandmarkCollection)
 
 @app.get("/test-milvus-connection/")
 async def test_milvus_connection():
-    try:
-
-        client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Milvus")
-        status = client.get_collection_stats(collection_name="test_name")
-        return {"message": "Connected to Milvus", "status": status}
-    except Exception as e:
-        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
-
-class Insert(BaseModel):
-    name :List[str]
-
-class Search(BaseModel):
-    name: List[str]
-
-class Update(BaseModel):
-    identifikator : List[int]
-    name : List[str]
-
-class Delete(BaseModel):
-    identifikator : List[int]
+    await TestMilvusCollection(MILVUS_HOST,MILVUS_PORT)
 
 @app.post("/insertText")
 async def insertText(body : Insert):
-    try:
-        test_collection = "text_collection"
-        collection = Collection(name=test_collection)
-        embedding = [nlp(name).vector for name in body.name]
-        name = body.name
-       #ids = text.ids
-        #data = [ids,embedding,name]
-        data = [embedding,name]
-        mr = collection.insert(data)
-        print(f"Insert result: {mr}")
-        collection.flush()
-    except Exception as e:
-        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+    await insertInTextCollection(body,nlp)
     
 @app.post("/searchText")
 async def searchText(body: Search):
-    try:
-        vectors = [nlp(name).vector for name in body.name]
-
-        res = client.search(
-            collection_name="text_collection",
-            data=vectors,
-            limit=5,
-            search_params={"metric_type": "L2", "params": {}}
-        )
-
-        search_result_ids = [j["id"] for i in res for j in i]
-        
-        if not search_result_ids:
-            raise HTTPException(status_code=404, detail="No search results found")
-
-        entities = client.get(
-            collection_name="text_collection",
-            ids=search_result_ids
-        )
-        returnValues = []
-        for entity in entities : 
-            print(entity["ID"])
-            print(entity["name"]) 
-            returnValues.append([entity["ID"],entity["name"]])
-        return returnValues
-    except Exception as e:
-        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+    await SearchText(body,nlp,client)
     
 @app.post("/upsertText")
 async def upsertText(body : Update):
-    try:
-
-        headers = {
-        "Content-Type": "application/json",
-        }
-        payload = {
-        "text": body.name[0],
-        "vectordatabaseid": body.identifikator
-        }
-        async with httpx.AsyncClient() as client:
-            response = await client.post("http://host.docker.internal:8081/Text/insert", headers=headers, json=payload)
-        if response:        
-            try:
-                collection_name="text_collection"
-                collection = Collection(collection_name)
-                collection.delete(f"ID in {body.identifikator}")
-                embedding = [nlp(name).vector for name in body.name]
-                name = body.name
-                data = [embedding,name]
-                mr = collection.insert(data)
-
-                print(f"Insert result: {mr}")
-                collection.flush()
-                return {"message":"Update completed."}
-            except Exception as e:
-                await client.post("http://host.docker.internal:8081/Text/delete", headers=headers, json=payload)
-                return {"message": "Transaction cancelled: \n Error occurred during Milvus connection:", "error": str(e)}
-        else: 
-            return {"message" : "Transaction failed"}
-    except Exception as e:
-        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+    await UpsertText(body,nlp)
     
 @app.post("/deleteText")
 async def deleteText(body : Delete):
-    try:
-        collection_name="text_collection"
-        collection = Collection(collection_name)
-        collection.delete(f"ID in {body.identifikator}")
-        return {"message" : "Deleted entities."}
-    
-    except Exception as e:
-        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
-        
-      
+    await DeleteText(body)
+
+@app.post("/insertToLandmarks")
+async def insertToLandmarks(body : LandmarkInsert):
+    await InsertToLandmarks(body,nlp)
+
+@app.post("/searchLandmarkCollection")
+async def searchLandmarkText(body : LandmarkSearch):
+    res = await SearchLandmarkText(body,nlp,client)
+    print(res)
+    return res
+
+@app.post("/deleteFromLandmarks")
+async def deleteLandmarkEntity(body : LandmarkDelete):
+    res = await DeleteLandmarkEntity(body)
+    print(res)
+    return res
+
+@app.post("/upsertLandmarkEntity")
+async def deleteLandmarkEntity(body : LandmarkUpsert):
+    res = await UpsertLandmarkEntity(body,nlp)
+    print(res)
+    return res
 
 if __name__ == "__main__":
     import uvicorn

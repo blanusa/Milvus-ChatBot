@@ -54,6 +54,7 @@ services:
     depends_on:
       - "etcd"
       - "minio"
+    
 
   fastapi:
     build: .

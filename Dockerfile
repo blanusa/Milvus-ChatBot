@@ -13,9 +13,9 @@ RUN python -m spacy download en_core_web_lg
 COPY . /app
 COPY milvus_standalone.py .
 COPY novi_sad_bus_departure_times.csv .
-COPY landmarks.csv .
-COPY busRoutes.py .
-COPY busStops.py .
+COPY insertScripts/landmarks.py /app/
+COPY insertScripts/busRoutes.py /app/
+COPY insertScripts/busStops.py /app/
 COPY start.sh .
 
 
