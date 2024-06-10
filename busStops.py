@@ -49,7 +49,7 @@ def csv_load(file_path, encoding='utf-8'):
     with open(file_path, 'r', encoding=encoding, newline='') as file:
         reader = csv.reader(file, delimiter=',')
         for row in reader:
-            print(row)
+            #print(row)
             if '' in (row[7], row[7]):
                 continue
             yield (row[1],row[2], row[3],row[4],row[5],row[6],row[7])
