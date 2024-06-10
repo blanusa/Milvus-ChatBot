@@ -1,22 +1,21 @@
-from pymilvus import connections, utility, MilvusException, MilvusClient, Collection, FieldSchema, CollectionSchema, DataType
+from pymilvus import connections, utility, MilvusException, MilvusClient, Collection
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 import httpx
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
-import csv
-#from sentence_transformers import SentenceTransformer
-import time
-import pandas as pd
 import spacy
 
-
+MILVUS_HOST = 'standalone'
+MILVUS_PORT = 19530
 app = FastAPI()
 
 nlp = spacy.load('en_core_web_lg')
 connections.connect(host="standalone", port="19530")
 
+BusStopsCollection = Collection(name="BusStopsCollection")
+BusDepartCollection = Collection(name="BusDepartCollection")
+LandmarkCollection = Collection(name="LandmarkCollection")
 
 @app.get("/")
 async def func():
@@ -37,8 +36,10 @@ async def func():
 @app.get("/get-entity-count/")
 async def get_entity_count():
     try:
-        count = collection.num_entities
-        return {"message": "Count of entities in collection", "count": count}
+        count1 = BusStopsCollection.num_entities
+        count2 = BusDepartCollection.num_entities
+        count3 = LandmarkCollection.num_entities
+        return {"message": "Count of entities in collections : " + count1 +" "+ count2 +" "+ count3, "count":count1+count2+count3}
     except Exception as e:
         return {"message": "Error occurred while getting entity count:", "error": str(e)}
 
