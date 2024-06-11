@@ -66,7 +66,19 @@ class Insert(BaseModel):
     name :List[str]
 
 
-class Search(BaseModel):
+class SearchLandmarks(BaseModel):
+    landmark: List[str]
+    region: str
+    min_citizens: int
+    max_citizens: int
+
+class SearchStops(BaseModel):
+    special_features: List[str]
+    latitude: int
+    longitude: int
+    facilities : str
+
+class SearchRoutes(BaseModel):
     landmark: List[str]
     region: str
     min_citizens: int
@@ -96,6 +108,9 @@ async def insertText(body : Insert):
     except Exception as e:
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
     
+class Search(BaseModel):
+    name : str
+
 @app.post("/searchText")
 async def searchText(body: Search):
     try:
@@ -174,9 +189,8 @@ async def deleteText(body : Delete):
 
 
 # kompleksni
-# ovo se ne koristi nego ono dole, neka ga za svaki slucaj
 @app.get("/searchLandmarks1")
-async def searchLandmarks1(body: Search):
+async def searchLandmarks1(body: SearchLandmarks):
     try:
         vectors = [nlp(name).vector for name in body.landmark]
 
@@ -189,23 +203,13 @@ async def searchLandmarks1(body: Search):
 
         search_result_ids = [j["id"] for i in res for j in i]
 
-        #print("---------- search_result_ids ---------------")
-        #print(search_result_ids)
-        #print("----------- Kraj search_result_ids --------------")
-
-
         if not search_result_ids:
             raise HTTPException(status_code=404, detail="No search results found")
 
-        # Perform additional filtering by region and number of citizens
         entities = client.get(
             collection_name="LandmarkCollection",
             ids=search_result_ids
         )
-        #print("---------- Entities ---------------")
-        #print(entities)
-        #print("----------- Kraj Entities --------------")
-
         filtered_entities = []
         for entity in entities:
             if (entity["Region"] == body.region and
@@ -231,80 +235,63 @@ async def searchLandmarks1(body: Search):
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
         
       
-@app.get("/searchLandmarks1")
-async def searchLandmarks(body: Search):
-    search_param = {
-    "data": [body.landmark],
-    "anns_field": "book_intro",
-    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
-    "limit": 10,
-    "expr": "numberOfCitizens <= " + body.max_citizens,
-    }
-    res = LandmarkCollection.search(**search_param)
-    return res
+@app.get("/searchStops1")
+async def searchStops1(body: SearchStops):
+    try:
+        vectors = [nlp(name).vector for name in body.special_features]
+
+        res = client.search(
+            collection_name="BusStopsCollection",
+            data=vectors,
+            limit=5,
+            search_params={"metric_type": "L2", "params": {"nprobe": 32, "top_k": 5}}
+        )
+
+        search_result_ids = [j["id"] for i in res for j in i]
+
+        # vraca search_result_ids dobro
+
+        if not search_result_ids:
+            raise HTTPException(status_code=404, detail="No search results found")
+
+        entities = client.get(
+            collection_name="BusStopsCollection",
+            ids=search_result_ids
+        )
+        filtered_entities = []
+        for entity in entities:
+            if (entity["longitude"] > body.longitude and
+                entity["latitude"] > body.latitude and
+                #contains_substring(body.facilities,entity["facilities"])
+                body.facilities in entity["facilities"]
+                ):
+                filtered_entities.append(entity)
+
+        if len(filtered_entities) == 0:
+            raise HTTPException(status_code=404, detail="No filtered search results found")
+
+        returnValues = []
+        for entity in filtered_entities:
+            returnValues.append({
+                "ID": entity["id"],
+                "Name": entity["name"],
+                "Latitude": str(entity["latitude"]),
+                "Longitude": str(entity["longitude"]),
+                "Facilities": entity["facilities"],
+                "Special features": entity["special_features"]
+            })
+        return returnValues
+
+    except Exception as e:
+        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
 
 
-@app.get("/searchRoutes1")
-async def searchRoutes1(body: Search):
-    search_param = {
-    "data": [body.landmark],
-    "anns_field": "book_intro",
-    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
-    "limit": 10,
-    "expr": "numberOfCitizens <= " + body.max_citizens,
-    }
-    res = LandmarkCollection.search(**search_param)
-    return res
-
-@app.get("/searchRoutes2")
-async def searchRoutes2(body: Search):
-    search_param = {
-    "data": [body.landmark],
-    "anns_field": "book_intro",
-    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
-    "limit": 10,
-    "expr": "numberOfCitizens <= " + body.max_citizens,
-    }
-    res = LandmarkCollection.search(**search_param)
-    return res
-
-@app.get("/searchLandmarks1")
-async def searchLandmarks(body: Search):
-    search_param = {
-    "data": [body.landmark],
-    "anns_field": "book_intro",
-    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
-    "limit": 10,
-    "expr": "numberOfCitizens <= " + body.max_citizens,
-    }
-    res = LandmarkCollection.search(**search_param)
-    return res
-
-@app.get("/searchLandmarks1")
-async def searchLandmarks(body: Search):
-    search_param = {
-    "data": [body.landmark],
-    "anns_field": "book_intro",
-    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
-    "limit": 10,
-    "expr": "numberOfCitizens <= " + body.max_citizens,
-    }
-    res = LandmarkCollection.search(**search_param)
-    return res
-
-@app.get("/searchLandmarks1")
-async def searchLandmarks(body: Search):
-    search_param = {
-    "data": [body.landmark],
-    "anns_field": "book_intro",
-    "param": {"metric_type": "L2", "params": {"nprobe": 10}, "offset": 0},
-    "limit": 10,
-    "expr": "numberOfCitizens <= " + body.max_citizens,
-    }
-    res = LandmarkCollection.search(**search_param)
-    return res
-
-
+def contains_substring(substring, string_list):
+    substring = substring.lower()
+    for string in string_list:
+        if substring in string.lower():
+            return True
+    return False
 
 if __name__ == "__main__":
     import uvicorn
