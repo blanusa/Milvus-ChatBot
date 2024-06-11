@@ -23,14 +23,9 @@ COPY start.sh .
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
 
-# Run app.py when the container launches
+#Function run
+CMD ["uvicorn", "milvus_standalone:app", "--host", "0.0.0.0", "--port", "8000"]
 
-#CMD ["uvicorn", "milvus_standalone:app", "--host", "0.0.0.0", "--port", "8000"]
-#CMD ["python", "busRoutes.py"]
-#CMD ["python", "landmarks.py"]
-#CMD ["python", "busStops.py"]
-#CMD ["uvicorn", "milvus_standalone:app", "--host", "0.0.0.0", "--port", "8000" && "python busRoutes.py && python landmarks.py && python busStops.py"]
-RUN chmod +x /app/start.sh
-
-# Set the default command to run the script
-CMD ["/app/start.sh"]
+#Shell run 
+#RUN chmod +x /app/start.sh
+#CMD ["/app/start.sh"]

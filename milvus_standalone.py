@@ -7,8 +7,13 @@ from pydantic import BaseModel
 from typing import List
 import spacy
 
+from controllers.BusRoutesCollectionController import BusRouteDelete, BusRouteInsert, BusRouteSearch, BusRouteUpsert, DeleteBusRoute, InsertToBusRoutes, SearchBusRoutes, UpsertBusRoute
+from controllers.BusStopsCollectionController import BusStopDelete, BusStopInsert, BusStopSearch, BusStopUpsert, DeleteBusStopEntity, InsertToBusStops, SearchBusStopText, UpsertBusStopEntity
 from controllers.DTO import DeleteText, GetEntityCount, Insert, SearchText, TestMilvusCollection, Update, Search, Delete, UpsertText, getAllCollection, insertInTextCollection
 from controllers.LandmarkCollectionController import DeleteLandmarkEntity, InsertToLandmarks, LandmarkDelete, LandmarkInsert, LandmarkSearch, LandmarkUpsert, SearchLandmarkText, UpsertLandmarkEntity
+from insertScripts.busRoutes import insertBusRoutes
+from insertScripts.busStops import insertBusStops
+from insertScripts.landmarks import insertLandmarks
 
 app = FastAPI()
 
@@ -17,6 +22,11 @@ MILVUS_PORT = 19530
 nlp = spacy.load("en_core_web_lg")
 connections.connect(host="standalone", port="19530")
 client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Milvus")
+
+insertLandmarks(nlp)
+insertBusStops(nlp)
+insertBusRoutes(nlp)
+
 
 BusStopsCollection = Collection(name="BusStopsCollection")
 BusDepartCollection = Collection(name="BusDepartCollection")
@@ -50,25 +60,77 @@ async def upsertText(body : Update):
 async def deleteText(body : Delete):
     await DeleteText(body)
 
+
+# <<<<<<=============================================INSERTS=============================================>>>>>>
 @app.post("/insertToLandmarks")
 async def insertToLandmarks(body : LandmarkInsert):
     await InsertToLandmarks(body,nlp)
 
+@app.post("/insertToBusRoutes")
+async def insertToBusRoutes(body : BusRouteInsert):
+    res = await InsertToBusRoutes(body,nlp)
+    return res
+
+@app.post("/insertToBusStops")
+async def insertToBusStops(body : BusStopInsert):
+    res = await InsertToBusStops(body,nlp)
+    return res
+
+
+# <<<<<<=============================================Vector search=============================================>>>>>>
 @app.post("/searchLandmarkCollection")
 async def searchLandmarkText(body : LandmarkSearch):
     res = await SearchLandmarkText(body,nlp,client)
     print(res)
     return res
 
+@app.post("/searchBusRouteCollection")
+async def searchBusRoutes(body : BusRouteSearch):
+    res = await SearchBusRoutes(body,nlp,client)
+    print(res)
+    return res
+
+@app.post("/searchBusStopCollection")
+async def searchBusStops(body: BusStopSearch):
+    res = await SearchBusStopText(body,nlp,client)
+    print(res)
+    return res
+
+# <<<<<<=============================================DELETES=============================================>>>>>>
 @app.post("/deleteFromLandmarks")
 async def deleteLandmarkEntity(body : LandmarkDelete):
     res = await DeleteLandmarkEntity(body)
     print(res)
     return res
 
+@app.post("/deleteFromBusRoutes")
+async def deleteBusRoute(body : BusRouteDelete):
+    res = await DeleteBusRoute(body)
+    print(res)
+    return res
+
+@app.post("/deleteFromBusStops")
+async def deleteBusStop(body : BusStopDelete):
+    res = await DeleteBusStopEntity(body)
+    print(res)
+    return res
+
+# <<<<<<=============================================Upserts=============================================>>>>>>
 @app.post("/upsertLandmarkEntity")
 async def deleteLandmarkEntity(body : LandmarkUpsert):
     res = await UpsertLandmarkEntity(body,nlp)
+    print(res)
+    return res
+
+@app.post("/upsertBusRoute")
+async def upsertBusRoute(body : BusRouteUpsert):
+    res = await UpsertBusRoute(body,nlp)
+    print(res)
+    return res
+
+@app.post("/upsertBusStop")
+async def upsertBusStop(body : BusStopUpsert):
+    res = await UpsertBusStopEntity(body,nlp)
     print(res)
     return res
 

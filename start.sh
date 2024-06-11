@@ -4,13 +4,13 @@
 uvicorn milvus_standalone:app --host 0.0.0.0 --port 8000 &
 
 # Start the second service
-python busRoutes.py &
+#python busRoutes.py &
 
 # Start the third service
-python landmarks.py &
+#python landmarks.py &
 
 # Start the fourth service
-python busStops.py &
+#python busStops.py &
 
 # Wait for all background processes to finish
 wait

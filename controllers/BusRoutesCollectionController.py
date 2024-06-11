@@ -4,50 +4,52 @@ from pydantic import BaseModel
 from pymilvus import Collection
 
 
-class LandmarkInsert(BaseModel):
-    landmark :List[str]
-    city : List[str]
-    region : List[str]
-    numberofcitizens : List[int]
+class BusRouteInsert(BaseModel):
+    street : List[str]
+    busline : List[str]
+    departureTime : List[str]
+    routedescription : List[str]
+    routeduration : List[int]
 
-class LandmarkSearch(BaseModel):
-    landmark : List[str]
+class BusRouteSearch(BaseModel):
+    routedescription : List[str]
 
-class LandmarkDelete(BaseModel):
+class BusRouteDelete(BaseModel):
     identifikator : List[int]
 
-class LandmarkUpsert(BaseModel):
+class BusRouteUpsert(BaseModel):
     identifikator : List[int]
-    landmark :List[str]
-    city : List[str]
-    region : List[str]
-    numberofcitizens : List[int]
+    street : List[str]
+    busline : List[str]
+    departureTime : List[str]
+    routedescription : List[str]
+    routeduration : List[int]
 
-async def InsertToLandmarks(body,nlp):
+
+async def InsertToBusRoutes(body,nlp):
     try:
-        test_collection = "LandmarkCollection"
+        test_collection = "BusDepartCollection"
         collection = Collection(name=test_collection)
         data = [
-            body.landmark,
-            body.city,
-            body.region,
-            body.numberofcitizens,
-            [nlp(lmr).vector for lmr in body.landmark]
+            body.street,
+            body.busline,
+            body.departureTime,
+            body.routedescription,
+            body.routeduration,
+            [nlp(description).vector for description in body.routedescription]
         ]
         mr = collection.insert(data)
         print(f"Insert result: {mr}")
         collection.flush()
-        return mr
     except Exception as e:
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
     
-async def SearchLandmarkText(body,nlp,client):
-
+async def SearchBusRoutes(body,nlp,client):
     try:
-        vectors = [nlp(name).vector for name in body.landmark]
+        vectors = [nlp(name).vector for name in body.routedescription]
 
         res = client.search(
-            collection_name="LandmarkCollection",
+            collection_name="BusDepartCollection",
             data=vectors,
             limit=5,
             search_params={"metric_type": "L2", "params": {}}
@@ -59,38 +61,41 @@ async def SearchLandmarkText(body,nlp,client):
             raise HTTPException(status_code=404, detail="No search results found")
 
         entities = client.get(
-            collection_name="LandmarkCollection",
+            collection_name="BusDepartCollection",
             ids=search_result_ids
         )
         returnValues = []
         for entity in entities : 
             print(entity["id"])
-            print(entity["Landmark"]) 
-            returnValues.append([entity["id"],entity["Landmark"]])
+            print(entity["BusLine"]) 
+            print(entity["RouteDescription"])
+            print(entity["RouteDuration"])
+            returnValues.append([entity["id"],entity["BusLine"],entity["RouteDescription"],entity["RouteDuration"]])
         return returnValues
     except Exception as e:
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
-    
-async def DeleteLandmarkEntity(body):
+
+async def DeleteBusRoute(body):
     try:
-        collection_name="LandmarkCollection"
+        collection_name="BusDepartCollection"
         collection = Collection(collection_name)
         collection.delete(f"id in {body.identifikator}")
         return {"message" : "Deleted entities."}
     except Exception as e:
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
     
-async def UpsertLandmarkEntity(body,nlp):
+async def UpsertBusRoute(body,nlp):
     try:
-        collection_name="LandmarkCollection"
+        collection_name="BusDepartCollection"
         collection = Collection(collection_name)
         collection.delete(f"id in {body.identifikator}")
         data = [
-            body.landmark,
-            body.city,
-            body.region,
-            body.numberofcitizens,
-            [nlp(lmr).vector for lmr in body.landmark]
+            body.street,
+            body.busline,
+            body.departureTime,
+            body.routedescription,
+            body.routeduration,
+            [nlp(description).vector for description in body.routedescription]
         ]
         mr = collection.insert(data)
         print(f"Insert result: {mr}")
@@ -99,3 +104,4 @@ async def UpsertLandmarkEntity(body,nlp):
    
     except Exception as e:
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+    
