@@ -18,8 +18,6 @@ COPY insertScripts/busRoutes.py /app/
 COPY insertScripts/busStops.py /app/
 COPY start.sh .
 
-
-
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
 

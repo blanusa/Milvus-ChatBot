@@ -9,7 +9,7 @@ import spacy
 
 from controllers.BusRoutesCollectionController import BusRouteDelete, BusRouteInsert, BusRouteSearch, BusRouteUpsert, DeleteBusRoute, InsertToBusRoutes, SearchBusRoutes, UpsertBusRoute
 from controllers.BusStopsCollectionController import BusStopDelete, BusStopInsert, BusStopSearch, BusStopUpsert, DeleteBusStopEntity, InsertToBusStops, SearchBusStopText, UpsertBusStopEntity
-from controllers.DTO import DeleteText, GetEntityCount, Insert, SearchText, TestMilvusCollection, Update, Search, Delete, UpsertText, getAllCollection, insertInTextCollection
+from controllers.DTO import DeleteText, GetEntityCount, Insert, Querry, SearchText, TestMilvusCollection, Update, Search, Delete, UpsertText, getAllCollection, insertInTextCollection
 from controllers.LandmarkCollectionController import DeleteLandmarkEntity, InsertToLandmarks, LandmarkDelete, LandmarkInsert, LandmarkSearch, LandmarkUpsert, SearchLandmarkText, UpsertLandmarkEntity
 from insertScripts.busRoutes import insertBusRoutes
 from insertScripts.busStops import insertBusStops
@@ -44,6 +44,7 @@ async def get_entity_count():
 async def test_milvus_connection():
     await TestMilvusCollection(MILVUS_HOST,MILVUS_PORT)
 
+# <<<<<<=============================================Text collection (obrisana)=============================================>>>>>>
 @app.post("/insertText")
 async def insertText(body : Insert):
     await insertInTextCollection(body,nlp)
@@ -59,7 +60,6 @@ async def upsertText(body : Update):
 @app.post("/deleteText")
 async def deleteText(body : Delete):
     await DeleteText(body)
-
 
 # <<<<<<=============================================INSERTS=============================================>>>>>>
 @app.post("/insertToLandmarks")
@@ -134,8 +134,25 @@ async def upsertBusStop(body : BusStopUpsert):
     print(res)
     return res
 
+# <<<<<<=============================================Querry=============================================>>>>>>
+@app.post("/pitamSePitam")
+async def searchCollections(body: Querry):
+    try:
+        collection_name=body.collection[0]
+        collection = Collection(collection_name)
+        res = collection.query(
+            expr = body.querry[0],
+            offset = body.offset,
+            limit = body.numberofresults, 
+            output_fields = body.outputFields,
+        )
+        print(res)
+        return res
+    except Exception as e:
+        return {"message" : "Error occurred during Milvus connection:", "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
     
-#docker run --name attu -p 8000:3000 -e HOST_URL=http://192.168.1.24:8000 -e MILVUS_URL=http://192.168.1.24:19530 zilliz/attu:v2.3.6
+#docker run --name attu -p 8000:3000 -e HOST_URL=http://192.168.1.8:8000 -e MILVUS_URL=http://192.168.1.8:19530 zilliz/attu:v2.3.6

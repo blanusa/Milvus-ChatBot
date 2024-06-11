@@ -20,6 +20,13 @@ class Update(BaseModel):
 class Delete(BaseModel):
     identifikator : List[int]
 
+class Querry(BaseModel):
+    collection : List[str]
+    querry : List[str]
+    outputFields : List[str]
+    numberofresults : int
+    offset : int
+
 async def getAllCollection():
     try:
         collections = utility.list_collections()
