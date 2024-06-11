@@ -19,18 +19,18 @@ nlp = spacy.load("en_core_web_lg")
 connections.connect(host="standalone", port="19530")
 client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", token="root:Milvus")
 
-if not utility.has_collection("BusStopsCollection"):
-    run_bus_stops_insertion()
-if not utility.has_collection("BusDepartCollection"):
-    run_bus_routes_insertion()
-if not utility.has_collection("LandmarkCollection"):
-    run_landmarks_insertion()
+
+def ensure_collection(name: str, creation_function):
+    try:
+        collection = Collection(name=name)
+        collection.load()
+    except MilvusException:
+        creation_function()
 
 
-
-BusStopsCollection = Collection(name="BusStopsCollection")
-BusDepartCollection = Collection(name="BusDepartCollection")
-LandmarkCollection = Collection(name="LandmarkCollection")
+ensure_collection("BusStopsCollection", run_bus_stops_insertion)
+ensure_collection("BusDepartCollection", run_bus_routes_insertion)
+ensure_collection("LandmarkCollection", run_landmarks_insertion)
 
 
 @app.get("/")
@@ -87,6 +87,12 @@ class SearchStops2(BaseModel):
     special_features: List[str]
     nearby_landmarks : str
     bus_lines : str
+
+class SearchStops3(BaseModel):
+    special_features: List[str]
+    nearby_landmarks : str
+    facilities : str
+
 
 class SearchRoutes1(BaseModel):
     routeDescription: List[str]
@@ -390,6 +396,100 @@ async def searchRoutes1(body: SearchRoutes1):
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
 
 
+@app.get("/searchRoutes2")
+async def searchRoutes2(body: SearchRoutes2):
+    try:
+        vectors = [nlp(name).vector for name in body.routeDescription]
+
+        res = client.search(
+            collection_name="BusDepartCollection",
+            data=vectors,
+            limit=5,
+            search_params={"metric_type": "L2", "params": {"nprobe": 32, "top_k": 5}}
+        )
+
+        search_result_ids = [j["id"] for i in res for j in i]
+
+        if not search_result_ids:
+            raise HTTPException(status_code=404, detail="No search results found")
+
+        entities = client.get(
+            collection_name="BusDepartCollection",
+            ids=search_result_ids
+        )
+        filtered_entities = []
+        for entity in entities:
+            if (
+                body.RouteDuration < entity["RouteDuration"] and
+                body.DepartureTime.lower() in entity["DepartureTime"].lower()
+                ):
+                filtered_entities.append(entity)
+
+        if len(filtered_entities) == 0:
+            raise HTTPException(status_code=404, detail="No filtered search results found")
+
+        returnValues = []
+        for entity in filtered_entities:
+            returnValues.append({
+                "ID": entity["id"],
+                "Street": entity["Street"],
+                "BusLine" : entity["BusLine"],
+                "DepartureTime" : entity["DepartureTime"],
+                "RouteDescription": entity["RouteDescription"],
+                "RouteDuration": entity["RouteDuration"]
+            })
+        return returnValues
+
+    except Exception as e:
+        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+    
+
+
+@app.get("/searchStops3")
+async def searchStops3(body: SearchStops3):
+    try:
+        vectors = [nlp(name).vector for name in body.special_features]
+
+        res = client.search(
+            collection_name="BusStopsCollection",
+            data=vectors,
+            limit=5,
+            search_params={"metric_type": "L2", "params": {"nprobe": 32, "top_k": 5}}
+        )
+
+        search_result_ids = [j["id"] for i in res for j in i]
+
+        if not search_result_ids:
+            raise HTTPException(status_code=404, detail="No search results found")
+
+        entities = client.get(
+            collection_name="BusStopsCollection",
+            ids=search_result_ids
+        )
+        filtered_entities = []
+        for entity in entities:
+            if (
+                body.nearby_landmarks.lower() in entity["nearby_landmarks"].lower() and
+                body.facilities.lower() in entity["facilities"].lower()
+                ):
+                filtered_entities.append(entity)
+
+        if len(filtered_entities) == 0:
+            raise HTTPException(status_code=404, detail="No filtered search results found")
+
+        returnValues = []
+        for entity in filtered_entities:
+            returnValues.append({
+                "ID": entity["id"],
+                "Name": entity["name"],
+                "Nearby landmarks" : entity["nearby_landmarks"],
+                "Facilities" : entity["facilities"],
+                "Special features": entity["special_features"]
+            })
+        return returnValues
+
+    except Exception as e:
+        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
