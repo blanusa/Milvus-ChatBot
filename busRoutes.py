@@ -71,12 +71,12 @@ def run_bus_routes_insertion():
         #Street,BusLine,DepartureTime,RouteDuration,RouteDescription = 
 
     i = 0
-    for Street,BusLine,DepartureTime,RouteDuration,RouteDescription in csv_load("novi_sad_bus_departure_times.csv"):
+    for Street,BusLine,DepartureTime,RouteDescription,RouteDuration in csv_load("novi_sad_bus_departure_times.csv"):
         data_batch[0].append(Street)
         data_batch[1].append(BusLine)
         data_batch[2].append(DepartureTime)
-        data_batch[3].append(RouteDuration)
-        data_batch[4].append(int(RouteDescription))
+        data_batch[3].append(RouteDescription)
+        data_batch[4].append(int(RouteDuration))
         data_batch[5].append(RouteDescription)
         #if len(data_batch[0]) % BATCH_SIZE == 0:
         embed_insert(data_batch)
