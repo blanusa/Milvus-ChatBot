@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import HTTPException
+import httpx
 from pydantic import BaseModel
 from pymilvus import Collection
 
@@ -99,3 +100,40 @@ async def UpsertLandmarkEntity(body,nlp):
    
     except Exception as e:
         return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+
+async def TransactionLandmarkUpsert(body,nlp):
+    try:
+
+        headers = {
+        "Content-Type": "application/json",
+        }
+        payload = {
+        "text": body.landmark[0],
+        "vectordatabaseid": body.identifikator
+        }
+        async with httpx.AsyncClient() as client:
+            response = await client.post("http://host.docker.internal:8081/Text/insert", headers=headers, json=payload)
+        if response:        
+            try:
+                collection_name="LandmarkCollection"
+                collection = Collection(collection_name)
+                collection.delete(f"id in {body.identifikator}")
+                data = [
+                    body.landmark,
+                    body.city,
+                    body.region,
+                    body.numberofcitizens,
+                    [nlp(lmr).vector for lmr in body.landmark]
+                ]
+                mr = collection.insert(data)
+                print(f"Insert result: {mr}")
+                collection.flush()
+                return {"message":"Update completed."}
+            except Exception as e:
+                await client.post("http://host.docker.internal:8081/Text/delete", headers=headers, json=payload)
+                return {"message": "Transaction cancelled: \n Error occurred during Milvus connection:", "error": str(e)}
+        else: 
+            return {"message" : "Transaction failed"}
+    except Exception as e:
+        return {"message": "Error occurred during Milvus connection:", "error": str(e)}
+ 

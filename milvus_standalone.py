@@ -10,7 +10,7 @@ import spacy
 from controllers.BusRoutesCollectionController import BusRouteDelete, BusRouteInsert, BusRouteSearch, BusRouteUpsert, DeleteBusRoute, InsertToBusRoutes, SearchBusRoutes, UpsertBusRoute
 from controllers.BusStopsCollectionController import BusStopDelete, BusStopInsert, BusStopSearch, BusStopUpsert, DeleteBusStopEntity, InsertToBusStops, SearchBusStopText, UpsertBusStopEntity
 from controllers.DTO import DeleteText, GetEntityCount, Insert, Querry, SearchText, TestMilvusCollection, Update, Search, Delete, UpsertText, getAllCollection, insertInTextCollection
-from controllers.LandmarkCollectionController import DeleteLandmarkEntity, InsertToLandmarks, LandmarkDelete, LandmarkInsert, LandmarkSearch, LandmarkUpsert, SearchLandmarkText, UpsertLandmarkEntity
+from controllers.LandmarkCollectionController import DeleteLandmarkEntity, InsertToLandmarks, LandmarkDelete, LandmarkInsert, LandmarkSearch, LandmarkUpsert, SearchLandmarkText, TransactionLandmarkUpsert, UpsertLandmarkEntity
 from insertScripts.busRoutes import insertBusRoutes
 from insertScripts.busStops import insertBusStops
 from insertScripts.landmarks import insertLandmarks
@@ -122,6 +122,12 @@ async def deleteLandmarkEntity(body : LandmarkUpsert):
     print(res)
     return res
 
+@app.post("/transactionalLandmarksUpsert")
+async def transaction(body : LandmarkUpsert):
+    res = await TransactionLandmarkUpsert(body,nlp)
+    print(res)
+    return res
+
 @app.post("/upsertBusRoute")
 async def upsertBusRoute(body : BusRouteUpsert):
     res = await UpsertBusRoute(body,nlp)
@@ -155,4 +161,4 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
     
-#docker run --name attu -p 8000:3000 -e HOST_URL=http://192.168.1.8:8000 -e MILVUS_URL=http://192.168.1.8:19530 zilliz/attu:v2.3.6
+#docker run --name attu -p 8000:3000 -e HOST_URL=http://192.168.1.5:8000 -e MILVUS_URL=http://192.168.1.5:19530 zilliz/attu:v2.3.6
