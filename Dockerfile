@@ -4,7 +4,7 @@ FROM python:3.9-slim
 # Set the working directory in the container
 WORKDIR /app
 
-RUN pip install --no-cache-dir fastapi uvicorn pymilvus httpx
+RUN pip install --no-cache-dir fastapi uvicorn pymilvus httpx reportlab
 RUN pip install -U pip setuptools wheel
 RUN pip install -U spacy
 RUN python -m spacy download en_core_web_lg

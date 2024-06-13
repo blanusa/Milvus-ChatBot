@@ -27,6 +27,44 @@ class Querry(BaseModel):
     numberofresults : int
     offset : int
 
+class SearchLandmarks(BaseModel):
+    landmark: List[str]
+    region: str
+    min_citizens: int
+    max_citizens: int
+
+class SearchStops1(BaseModel):
+    special_features: List[str]
+    latitude: int
+    longitude: int
+    facilities : str
+
+class SearchStops2(BaseModel):
+    special_features: List[str]
+    nearby_landmarks : str
+    bus_lines : str
+
+class SearchStops3(BaseModel):
+    special_features: List[str]
+    nearby_landmarks : str
+    facilities : str
+
+
+class SearchRoutes1(BaseModel):
+    routeDescription: List[str]
+    street: str
+    busLine: str
+
+class SearchRoutes2(BaseModel):
+    routeDescription: List[str]
+    RouteDuration: int
+    DepartureTime: str
+
+class SearchRoutes3(BaseModel):
+    routeDescription: List[str]
+    departureTime: str
+    busLine: str
+
 async def getAllCollection():
     try:
         collections = utility.list_collections()
